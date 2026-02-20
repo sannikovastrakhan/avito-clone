@@ -263,7 +263,90 @@ def search_by_text(search_term):
 # ============================================================
 # ГЛАВНОЕ МЕНЮ ПРОГРАММЫ
 # ============================================================
+def show_popular_ads(min_views=50):
+    """Показать популярные объявления (с большим числом просмотров)"""
+    print(f"\n{'=' * 60}")
+    print(f"ПОПУЛЯРНЫЕ ОБЪЯВЛЕНИЯ (>={min_views} просмотров)")
+    print('=' * 60)
+    
+    found = False
+    for ad in ads:
+        if ad["views"] >= min_views and ad["is_active"]:
+            found = True
+            print(f"🔥 {ad['title']}")
+            print(f"   Цена: {ad['price']:,} ₽".replace(",", " "))
+            print(f"   Просмотров: {ad['views']}")
+            print(f"   Продавец: {ad['seller']}")
+            print("-" * 40)
+    
+    if not found:
+        print(f"Нет объявлений с {min_views}+ просмотрами")
 
+def show_ads_by_seller(seller_name):
+    """Показать объявления конкретного продавца"""
+    print(f"\n{'=' * 60}")
+    print(f"ОБЪЯВЛЕНИЯ ПРОДАВЦА: {seller_name.upper()}")
+    print('=' * 60)
+    
+    found = False
+    total_price = 0
+    count = 0
+    
+    for ad in ads:
+        if ad["seller"].lower() == seller_name.lower():
+            found = True
+            count += 1
+            total_price += ad["price"]
+            status = "✅ Активно" if ad["is_active"] else "❌ Продано"
+            print(f"{count}. {ad['title']}")
+            print(f"   Цена: {ad['price']:,} ₽".replace(",", " "))
+            print(f"   Статус: {status}")
+            print(f"   Просмотров: {ad['views']}")
+            print("-" * 40)
+    
+    if found:
+        print(f"\n📊 Итого у продавца {seller_name}:")
+        print(f"   Объявлений: {count}")
+        print(f"   Средняя цена: {total_price/count:,.0f} ₽".replace(",", " "))
+    else:
+        print(f"Продавец '{seller_name}' не найден")
+
+def show_cheapest_ads(limit=3):
+    """Показать самые дешёвые активные объявления"""
+    print(f"\n{'=' * 60}")
+    print(f"ТОП-{limit} САМЫХ ДЕШЁВЫХ ТОВАРОВ")
+    print('=' * 60)
+    
+    # Фильтруем только активные и сортируем по цене
+    active_ads = [ad for ad in ads if ad["is_active"]]
+    sorted_ads = sorted(active_ads, key=lambda x: x["price"])[:limit]
+    
+    for i, ad in enumerate(sorted_ads, 1):
+        print(f"{i}. {ad['title']}")
+        print(f"   Цена: {ad['price']:,} ₽".replace(",", " "))
+        print(f"   Категория: {ad['category']} | {ad['city']}")
+        print("-" * 40)
+
+def bulk_price_update(percent):
+    """Массовое обновление цен (например, для скидок)"""
+    print(f"\n{'=' * 60}")
+    print(f"МАССОВОЕ ИЗМЕНЕНИЕ ЦЕН НА {percent}%")
+    print('=' * 60)
+    
+    confirm = input(f"Изменить цены во всех активных объявлениях на {percent}%? (y/n): ")
+    
+    if confirm.lower() == 'y':
+        changed = 0
+        for ad in ads:
+            if ad["is_active"]:
+                old_price = ad["price"]
+                ad["price"] = int(ad["price"] * (1 + percent/100))
+                print(f"  {ad['title']}: {old_price:,} ₽ → {ad['price']:,} ₽".replace(",", " "))
+                changed += 1
+        
+        print(f"\n✅ Изменено объявлений: {changed}")
+    else:
+        print("Операция отменена")
 def main():
     """Главная функция программы"""
     
@@ -282,10 +365,14 @@ def main():
         print("  5. Поиск по тексту")
         print("  6. Добавить объявление")
         print("  7. Статистика")
+        print("  8. Популярные объявления")
+        print("  9. Объявления продавца")
+        print(" 10. Топ самых дешёвых")
+        print(" 11. Массовое изменение цен")
         print("  0. Выход")
         print("-" * 40)
         
-        choice = input("Выберите действие (0-7): ").strip()
+        choice = input("Выберите действие (0-11): ").strip()
         
         if choice == "1":
             show_all_ads()
@@ -331,6 +418,40 @@ def main():
         elif choice == "7":
             show_statistics()
         
+        elif choice == "8":
+            try:
+                min_views = input("Минимальное число просмотров (Enter для 50): ")
+                if min_views.strip() == "":
+                    show_popular_ads()
+                else:
+                    show_popular_ads(int(min_views))
+            except ValueError:
+                print("Ошибка! Введите число")
+        
+        elif choice == "9":
+            seller = input("Введите имя продавца: ").strip()
+            if seller:
+                show_ads_by_seller(seller)
+            else:
+                print("Имя продавца не указано")
+        
+        elif choice == "10":
+            try:
+                limit = input("Сколько показать? (Enter для 3): ")
+                if limit.strip() == "":
+                    show_cheapest_ads()
+                else:
+                    show_cheapest_ads(int(limit))
+            except ValueError:
+                print("Ошибка! Введите число")
+        
+        elif choice == "11":
+            try:
+                percent = float(input("Введите процент изменения (например, -10 для скидки 10%): "))
+                bulk_price_update(percent)
+            except ValueError:
+                print("Ошибка! Введите число")
+        
         elif choice == "0":
             print("\nСпасибо за использование программы! До свидания!")
             break
@@ -338,10 +459,7 @@ def main():
         else:
             print("Неверный выбор. Попробуйте снова.")
         
-        input("\nНажмите Enter, чтобы продолжить...")
-
-# ============================================================
-# ЗАПУСК ПРОГРАММЫ
+        input("\nНажмите Enter, чтобы продолжить...")        
 # ============================================================
 if __name__ == "__main__":
     main()
