@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "title": "MacBook Air M1 256GB",
+    "price": 67500,
+    "category": "Электроника",
+    "city": "Москва",
+    "seller": "Алексей",
+    "views": 45,
+    "is_active": true
+  },
+  {
+    "id": 2,
+    "title": "Велосипед горный Stels",
+    "price": 13500,
+    "category": "Спорт",
+    "city": "Санкт-Петербург",
+    "seller": "Иван",
+    "views": 23,
+    "is_active": true
+  },
+  {
+    "id": 3,
+    "title": "Диван угловой Ikea",
+    "price": 12000,
+    "category": "Мебель",
+    "city": "Казань",
+    "seller": "Мария",
+    "views": 12,
+    "is_active": false
+  },
+  {
+    "id": 4,
+    "title": "Место в коливинге",
+    "price": 15300,
+    "category": "Недвижимость",
+    "city": "Санкт-Петербург",
+    "seller": "Сергей",
+    "views": 0,
+    "is_active": true
+  }
+]
