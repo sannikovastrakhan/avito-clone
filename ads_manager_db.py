@@ -7,6 +7,8 @@
 
 import psycopg2
 from psycopg2 import sql, extras
+from tabulate import tabulate
+from datetime import datetime, timedelta
 
 # ============================================================
 # ПОДКЛЮЧЕНИЕ К БАЗЕ ДАННЫХ
@@ -408,6 +410,199 @@ class AdManager:
                 print(f"   Цена: {ad['price']:,} ₽ | Просмотров: {ad['views']}")
                 print(f"   Категория: {ad['category_name']} | {ad['city']}")
                 print("-" * 40)
+    # ============================================================
+    # НОВЫЕ ФУНКЦИИ ДНЯ 7
+    # ============================================================
+    
+    def show_time_stats(self):
+        """Статистика по времени создания объявлений"""
+        print("\n" + "=" * 60)
+        print("СТАТИСТИКА ПО ВРЕМЕНИ")
+        print("=" * 60)
+        
+        with self.conn.cursor(cursor_factory=extras.RealDictCursor) as cur:
+            # Статистика по дням
+            cur.execute("""
+                SELECT 
+                    DATE(created_at) as date,
+                    COUNT(*) as new_ads,
+                    SUM(views) as daily_views
+                FROM ads
+                GROUP BY date
+                ORDER BY date DESC
+                LIMIT 10
+            """)
+            
+            daily_stats = cur.fetchall()
+            
+            if daily_stats:
+                print("\n📅 Последние 10 дней:")
+                # Готовим данные для таблицы
+                table_data = []
+                for stat in daily_stats:
+                    table_data.append([
+                        stat['date'].strftime('%Y-%m-%d'),
+                        stat['new_ads'],
+                        stat['daily_views'] or 0
+                    ])
+                
+                print(tabulate(
+                    table_data,
+                    headers=['Дата', 'Новых', 'Просмотров'],
+                    tablefmt='grid'
+                ))
+            
+            # Среднее время жизни объявления
+            cur.execute("""
+                SELECT 
+                    AVG(EXTRACT(DAY FROM (NOW() - created_at))) as avg_days
+                FROM ads
+                WHERE is_active = true
+            """)
+            avg_days = cur.fetchone()['avg_days']
+            if avg_days:
+                print(f"\n📊 Среднее время жизни активного объявления: {avg_days:.1f} дней")
+    
+    def show_category_chart(self):
+        """Показать график распределения по категориям"""
+        print("\n" + "=" * 60)
+        print("РАСПРЕДЕЛЕНИЕ ПО КАТЕГОРИЯМ")
+        print("=" * 60)
+        
+        with self.conn.cursor(cursor_factory=extras.RealDictCursor) as cur:
+            cur.execute("""
+                SELECT 
+                    c.name,
+                    COUNT(a.id) as ads_count
+                FROM categories c
+                LEFT JOIN ads a ON c.id = a.category_id AND a.is_active = true
+                GROUP BY c.name
+                HAVING COUNT(a.id) > 0
+                ORDER BY ads_count DESC
+            """)
+            
+            categories = cur.fetchall()
+            
+            if not categories:
+                print("Нет данных")
+                return
+            
+            # Находим максимальное количество для масштабирования
+            max_count = max(cat['ads_count'] for cat in categories)
+            
+            print("\n📊 Горизонтальный график:")
+            for cat in categories:
+                bar_length = int(40 * cat['ads_count'] / max_count) if max_count > 0 else 0
+                bar = '█' * bar_length
+                print(f"{cat['name'][:15]:15} | {bar} {cat['ads_count']}")
+    
+    def export_to_csv(self):
+        """Экспорт объявлений в CSV файл"""
+        print("\n" + "=" * 60)
+        print("ЭКСПОРТ В CSV")
+        print("=" * 60)
+        
+        import csv
+        
+        filename = f"ads_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        
+        with self.conn.cursor(cursor_factory=extras.RealDictCursor) as cur:
+            cur.execute("""
+                SELECT 
+                    a.id,
+                    a.title,
+                    a.price,
+                    c.name as category,
+                    a.city,
+                    a.seller,
+                    a.views,
+                    a.is_active,
+                    a.created_at
+                FROM ads a
+                JOIN categories c ON a.category_id = c.id
+                ORDER BY a.created_at DESC
+            """)
+            
+            ads_data = cur.fetchall()
+            
+            if not ads_data:
+                print("Нет данных для экспорта")
+                return
+            
+            # Записываем в CSV
+            with open(filename, 'w', newline='', encoding='utf-8-sig') as csvfile:
+                if ads_data:
+                    fieldnames = ads_data[0].keys()
+                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                    writer.writeheader()
+                    writer.writerows(ads_data)
+            
+            print(f"✅ Экспортировано {len(ads_data)} объявлений")
+            print(f"📁 Файл сохранён как: {filename}")
+            
+            # Покажем первые несколько строк
+            print("\n👀 Первые 3 записи:")
+            with open(filename, 'r', encoding='utf-8-sig') as csvfile:
+                for i, line in enumerate(csvfile):
+                    if i > 3:
+                        break
+                    print(line.strip())
+    
+    def show_activity_heatmap(self):
+        """Тепловая карта активности по дням недели и часам"""
+        print("\n" + "=" * 60)
+        print("ТЕПЛОВАЯ КАРТА АКТИВНОСТИ")
+        print("=" * 60)
+        
+        with self.conn.cursor() as cur:
+            cur.execute("""
+                SELECT 
+                    EXTRACT(DOW FROM created_at) as day_of_week,
+                    EXTRACT(HOUR FROM created_at) as hour,
+                    COUNT(*) as ads_count
+                FROM ads
+                GROUP BY day_of_week, hour
+                ORDER BY day_of_week, hour
+            """)
+            
+            data = cur.fetchall()
+            
+            if not data:
+                print("Нет данных")
+                return
+            
+            # Создаём матрицу 7x24
+            matrix = [[0 for _ in range(24)] for _ in range(7)]
+            max_count = 0
+            
+            for day, hour, count in data:
+                day = int(day)
+                hour = int(hour)
+                if 0 <= day <= 6 and 0 <= hour <= 23:
+                    matrix[day][hour] = count
+                    if count > max_count:
+                        max_count = count
+            
+            # Дни недели
+            days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+            
+            print("\n📊 Активность по часам (0-23) и дням недели:")
+            print("    " + " ".join([f"{h:2}" for h in range(24)]))
+            
+            for day_idx, day_name in enumerate(days):
+                row = f"{day_name}: "
+                for hour in range(24):
+                    count = matrix[day_idx][hour]
+                    if count == 0:
+                        row += " ·"
+                    elif count < max_count * 0.3:
+                        row += " ░"
+                    elif count < max_count * 0.7:
+                        row += " ▒"
+                    else:
+                        row += " █"
+                print(row)
+
     def run(self):
         """Запуск главного меню"""
         print("=" * 60)
@@ -425,7 +620,13 @@ class AdManager:
                 print("  4. Топ объявлений")
                 print("  5. Редактировать объявление")
                 print("  6. Удалить объявление")
-                print("  7. Статистика")
+                print("  --- Статистика и аналитика ---")
+                print("  7. Общая статистика")
+                print("  8. Статистика по времени")
+                print("  9. График по категориям")
+                print(" 10. Тепловая карта активности")
+                print("  --- Экспорт ---")
+                print(" 11. Экспорт в CSV")
                 print("  0. Выход")
                 print("-" * 40)
                 
@@ -445,6 +646,14 @@ class AdManager:
                     self.delete_ad()
                 elif choice == "7":
                     self.show_statistics()
+                elif choice == "8":
+                    self.show_time_stats()
+                elif choice == "9":
+                    self.show_category_chart()
+                elif choice == "10":
+                    self.show_activity_heatmap()
+                elif choice == "11":
+                    self.export_to_csv()
                 elif choice == "0":
                     print("\nДо свидания!")
                     break
@@ -455,7 +664,6 @@ class AdManager:
         
         finally:
             self.close()
-
 # ============================================================
 # ЗАПУСК
 # ============================================================
