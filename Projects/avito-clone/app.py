@@ -1,3 +1,5 @@
+import logging
+logging.basicConfig(level=logging.DEBUG)
 from flask import Flask, render_template, request, redirect, url_for, flash
 import psycopg2
 from psycopg2 import extras
@@ -60,7 +62,8 @@ def list_ads():
     cur.close()
     conn.close()
     
-    return render_template('ads.html', ads=ads)
+    # ВАЖНО: здесь ДОЛЖЕН БЫТЬ ads.html, НЕ add_ad.html
+    return render_template('ads.html', ads=ads)    
 
 @app.route('/add', methods=['GET', 'POST'])
 def add_ad():
@@ -69,36 +72,56 @@ def add_ad():
     cur = conn.cursor(cursor_factory=extras.RealDictCursor)
     
     # Получаем список категорий для выпадающего списка
-    cur.execute("SELECT id, name FROM categories ORDER BY name")
-    categories = cur.fetchall()
+    try:
+        cur.execute("SELECT id, name FROM categories ORDER BY name")
+        categories = cur.fetchall()
+        print(f"Загружено категорий: {len(categories)}")  # Отладка
+    except Exception as e:
+        print(f"Ошибка загрузки категорий: {e}")
+        categories = []
     
     if request.method == 'POST':
-        title = request.form['title']
-        price = request.form['price']
-        category_id = request.form['category_id']
-        city = request.form['city']
-        seller = request.form['seller']
+        # Получаем данные из формы
+        title = request.form.get('title', '').strip()
+        price = request.form.get('price', '').strip()
+        category_id = request.form.get('category_id', '').strip()
+        city = request.form.get('city', '').strip()
+        seller = request.form.get('seller', '').strip()
+        
+        print(f"Получены данные: title={title}, price={price}, category_id={category_id}")  # Отладка
+        
+        # Проверка обязательных полей
+        if not all([title, price, category_id, city, seller]):
+            flash('❌ Все поля обязательны для заполнения!', 'error')
+            cur.close()
+            conn.close()
+            return render_template('add_ad.html', categories=categories)
         
         try:
+            # Вставляем новое объявление
             cur.execute("""
                 INSERT INTO ads (title, price, category_id, city, seller, views)
                 VALUES (%s, %s, %s, %s, %s, 0)
                 RETURNING id
-            """, (title, price, category_id, city, seller))
+            """, (title, int(price), int(category_id), city, seller))
             
             new_id = cur.fetchone()['id']
             conn.commit()
+            print(f"✅ Добавлено объявление с ID: {new_id}")  # Отладка
+            
             flash('✅ Объявление успешно добавлено!', 'success')
+            cur.close()
+            conn.close()
             return redirect(url_for('list_ads'))
             
         except Exception as e:
             conn.rollback()
+            print(f"❌ Ошибка при добавлении: {e}")  # Отладка
             flash(f'❌ Ошибка: {e}', 'error')
     
     cur.close()
     conn.close()
     return render_template('add_ad.html', categories=categories)
-
 @app.route('/ad/<int:ad_id>')
 def view_ad(ad_id):
     """Просмотр конкретного объявления"""

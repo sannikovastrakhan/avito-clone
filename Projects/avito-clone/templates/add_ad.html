@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Добавить объявление{% endblock %}
+
+{% block content %}
+<h2>Добавить новое объявление</h2>
+
+<div class="card">
+    <form method="POST">
+        <div class="form-group">
+            <label for="title">Название товара *</label>
+            <input type="text" id="title" name="title" required 
+                   placeholder="Например: MacBook Pro" class="form-control">
+        </div>
+        
+        <div class="form-group">
+            <label for="price">Цена (₽) *</label>
+            <input type="number" id="price" name="price" min="1" required 
+                   placeholder="Например: 75000" class="form-control">
+        </div>
+        
+        <div class="form-group">
+            <label for="category_id">Категория *</label>
+            <select id="category_id" name="category_id" required class="form-control">
+                <option value="">-- Выберите категорию --</option>
+                {% for cat in categories %}
+                <option value="{{ cat.id }}">{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="city">Город *</label>
+            <input type="text" id="city" name="city" required 
+                   placeholder="Например: Москва" class="form-control">
+        </div>
+        
+        <div class="form-group">
+            <label for="seller">Имя продавца *</label>
+            <input type="text" id="seller" name="seller" required 
+                   placeholder="Например: Алексей" class="form-control">
+        </div>
+        
+        <button type="submit" class="btn">➕ Добавить объявление</button>
+        <a href="/ads" class="btn" style="background: #6c757d;">Отмена</a>
+    </form>
+</div>
+
+<style>
+.form-control {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: border-color 0.3s;
+}
+.form-control:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+</style>
+{% endblock %}
