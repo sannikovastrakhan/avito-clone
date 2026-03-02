@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Менеджер объявлений{% endblock %}</title>
     <style>
         * {
@@ -150,6 +151,87 @@
         tr:hover {
             background: #f8f9fa;
         }
+/* ===== АДАПТИВНЫЙ ДИЗАЙН ===== */
+@media (max-width: 768px) {
+    .container {
+        margin: 10px;
+        border-radius: 10px;
+    }
+    
+    .header h1 {
+        font-size: 1.8em;
+    }
+    
+    .content {
+        padding: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .header h1 {
+        font-size: 1.5em;
+    }
+    
+    .header p {
+        font-size: 0.9em;
+    }
+    
+    .content {
+        padding: 10px;
+    }
+}
+/* ===== БУРГЕР-МЕНЮ ===== */
+.burger-btn {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 30px;
+    cursor: pointer;
+    color: #495057;
+    padding: 5px 15px;
+}
+
+.burger-content {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+    .desktop-menu {
+        display: none;
+    }
+    
+    .burger-btn {
+        display: block;
+        width: 100%;
+        text-align: left;
+    }
+    
+    .burger-content {
+        display: none;
+        flex-direction: column;
+        width: 100%;
+        margin-top: 10px;
+    }
+    
+    .burger-content.show {
+        display: flex;
+    }
+    
+    .burger-content a {
+        padding: 15px !important;
+        margin: 2px 0 !important;
+        background: #f8f9fa;
+        text-align: center;
+    }
+}
+
+@media (min-width: 769px) {
+    .mobile-menu {
+        display: none;
+    }
+}
     </style>
 </head>
 <body>
@@ -158,13 +240,28 @@
             <h1>🏠 Менеджер объявлений</h1>
             <p>Ваша личная доска объявлений</p>
         </div>
-        
         <div class="nav">
+        <!-- Десктопное меню -->
+        <div class="desktop-menu">
             <a href="/">Главная</a>
             <a href="/ads">Все объявления</a>
             <a href="/add">Добавить</a>
             <a href="/stats">Статистика</a>
             <a href="/about">О проекте</a>
+        </div>
+        
+        <!-- Мобильное меню -->
+        <div class="mobile-menu">
+            <button class="burger-btn" onclick="toggleMenu()">☰</button>
+            <div class="burger-content" id="burgerContent">
+                <a href="/">Главная</a>
+                <a href="/ads">Все объявления</a>
+                <a href="/add">Добавить</a>
+                <a href="/stats">Статистика</a>
+                <a href="/about">О проекте</a>
+            </div>
+        </div>
+    </div>
         </div>
         
         <div class="content">
@@ -183,5 +280,19 @@
             <p>© 2024 Менеджер объявлений. Все права защищены.</p>
         </div>
     </div>
+<script>
+function toggleMenu() {
+    document.getElementById('burgerContent').classList.toggle('show');
+}
+
+document.addEventListener('click', function(event) {
+    const menu = document.getElementById('burgerContent');
+    const btn = document.querySelector('.burger-btn');
+    
+    if (menu && btn && !menu.contains(event.target) && !btn.contains(event.target)) {
+        menu.classList.remove('show');
+    }
+});
+</script>
 </body>
 </html>
